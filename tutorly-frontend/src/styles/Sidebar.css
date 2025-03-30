@@ -1,0 +1,42 @@
+/* Sidebar.css */
+.sidebar {
+    width: 220px;
+    background-color: #1f2937;
+    color: #fff;
+    min-height: 100vh;
+    padding: 1rem;
+  }
+  
+  .sidebar-header {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+  
+
+/* Container for each link */
+.sidebar-nav a {
+    display: flex;         /* Ensure icon & text line up horizontally */
+    align-items: center;   /* Vertically center icon & text */
+    gap: 0.5rem;           /* Space between icon and text */
+    color: #d1d5db;        /* Text color */
+    text-decoration: none;
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Active and hover states */
+  .sidebar-nav a.active,
+  .sidebar-nav a:hover {
+    background-color: #374151;
+    color: #fff;
+  }
+  
+  /* Icon styling */
+  .icon {
+    font-size: 1.2rem;     /* Adjust icon size */
+    /* You can also change the color here if you want 
+       a different shade than the text */
+  }
+  

@@ -1,0 +1,18 @@
+/* AdminDashboard.css */
+.admin-dashboard {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+  }
+  
+  .admin-dashboard h2 {
+    color: #dc2626;
+    font-size: 1.75rem;
+  }
+  
+  .admin-dashboard p {
+    color: #b91c1c;
+  }
+  
