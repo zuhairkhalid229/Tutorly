@@ -1,0 +1,110 @@
+/* Page Container */
+.tutors-page {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  
+  /* Reuse existing styles from HomePage.css for .header, .navbar, etc.
+     If you want to keep them consistent, you can remove duplicates here
+     and rely on shared classes. Otherwise, override or extend them. */
+  
+  /* Main content area */
+  .tutors-content {
+    flex: 1;
+    padding: 2rem;
+    background-color: #f9f9f9;
+  }
+  
+  /* No tutors found text */
+  .no-tutors {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 1.2rem;
+    color: #333;
+  }
+  
+  /* Each subject section */
+  .subject-section {
+    margin-bottom: 3rem;
+    background-color: #ffffff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .subject-title {
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+    color: #2563eb;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 0.5rem;
+  }
+  
+  /* Tutors List Container */
+  .tutors-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;  /* This centers the cards even if there's one */
+  }
+  
+  .tutor-card {
+    width: 220px;  /* Fixed width prevents stretching */
+    background-color: #fefefe;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: box-shadow 0.3s;
+  }
+  
+  
+  .tutor-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  
+  .tutor-photo {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 0.75rem;
+  }
+  
+  .tutor-name {
+    margin: 0.5rem 0;
+    font-weight: 600;
+  }
+  
+  .tutor-qualification {
+    margin-bottom: 0.5rem;
+    color: #555;
+  }
+  
+  /* Tutor rating */
+  .tutor-rating {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+  
+  .star {
+    color: #ffc107; /* gold star color */
+    font-size: 1.1rem;
+  }
+  
+  .rating-text {
+    margin-left: 0.25rem;
+    color: #666;
+  }
+  
+  /* Footer styling (same as your HomePage) */
+  .footer {
+    background-color: #2563eb;
+    color: #ffffff;
+    text-align: center;
+    padding: 1rem;
+  }
+  

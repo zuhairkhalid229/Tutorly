@@ -1,45 +1,103 @@
-/* Navbar.css */
+/* Overall Navbar styling */
 .navbar {
-    width: 100%; /* Span full width of the screen */
-    background-color: #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .navbar-container {
-    /* Use flex to space items left and right */
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-  }
-  
-  .brand {
-    font-size: 1.5rem;
-    font-weight: bold;
-    color: #1d4ed8;
-  }
-  
-  /* nav-links is just a container for your right-side items */
-  .nav-links {
-    display: flex;
-    align-items: center;
-  }
-  
-  /* Style the logout button */
-  .logout-button {
-    color: white;
-    text-decoration: none;
-    background: #1d4ed8;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    padding: 0.5rem 1rem;
-  }
-  
-  .logout-button:hover {
-    background: white;
-    color: #1d4ed8;
-    border: 1px solid #1d4ed8;
-  }
-  
+  width: 100%;
+  background-color: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Grid container for left, center, right layout */
+.navbar-container {
+  /* max-width: 1900px; */
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+}
+
+/* Left: Brand */
+.nav-left {
+  justify-self: start;
+  margin-right: 12vh;
+}
+
+.logo a {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+/* Center: Nav links */
+.nav-center {
+  justify-self: center;
+}
+
+.nav-links {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-links li a {
+  font-size: 1rem;
+  color: #333;
+  text-decoration: none;
+  padding: 0.5rem;
+  transition: color 0.3s, border-bottom 0.3s;
+}
+
+.nav-links li a:hover {
+  color: #1d4ed8;
+  border-bottom: 2px solid #1d4ed8;
+}
+
+/* Right: Auth / Dashboard */
+.nav-right {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Logout button styling */
+.logout-button {
+  background: transparent;
+  border: 1px solid #1d4ed8;
+  color: #1d4ed8;
+  padding: 0.4rem 1rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #1d4ed8;
+  color: #fff;
+}
+
+/* Login / Register link styling */
+.login-link,
+.register-link {
+  display: inline-block;
+  font-size: 1rem;
+  color: #000;
+  text-decoration: none;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  transition: background-color 0.3s, border 0.3s;
+}
+
+.login-link:hover,
+.register-link:hover {
+  background-color: #f0f8ff;
+  border: 1px solid #1d4ed8;
+}

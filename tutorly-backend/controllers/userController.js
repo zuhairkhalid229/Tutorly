@@ -22,3 +22,49 @@ export const getSubjects = (req, res) => {
     res.json(results);
   });
 };
+
+export const getTutorsGroupedBySubject = (req, res) => {
+  const sql = `
+    SELECT 
+      s.id AS subjectId, 
+      s.name AS subjectName,
+      u.user_id AS tutorId, 
+      u.name AS tutorName, 
+      u.qualification
+    FROM users u
+    JOIN tutor_subjects ts ON u.user_id = ts.tutor_id
+    JOIN subjects s ON ts.subject_id = s.id
+    WHERE u.role = 'tutor'
+    ORDER BY s.name;
+  `;
+
+  db.query(sql, (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error fetching tutors', error: err });
+    }
+
+    // Group tutors by subject
+    const groupedSubjects = {};
+    results.forEach((row) => {
+      const { subjectId, subjectName, tutorId, tutorName, qualification } = row;
+
+      if (!groupedSubjects[subjectId]) {
+        groupedSubjects[subjectId] = {
+          subjectId,
+          subjectName,
+          tutors: []
+        };
+      }
+
+      groupedSubjects[subjectId].tutors.push({
+        tutorId,
+        tutorName,
+        qualification
+      });
+    });
+
+    // Convert the grouped object into an array
+    const response = Object.values(groupedSubjects);
+    res.json(response);
+  });
+};

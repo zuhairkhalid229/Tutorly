@@ -14,7 +14,7 @@ const Sidebar = () => {
         </NavLink>
         <NavLink to="/courses" className={({ isActive }) => isActive ? "active" : ""}>
           <FaBook className="icon" />
-          <span>Courses</span>
+          <span>Tutors</span>
         </NavLink>
         <NavLink to="/bookings" className={({ isActive }) => isActive ? "active" : ""}>
           <FaCalendarAlt className="icon" />
