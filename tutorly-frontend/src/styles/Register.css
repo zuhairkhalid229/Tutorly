@@ -1,0 +1,103 @@
+/* Overall container with a subtle gradient background */
+.register-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+  }
+  
+  /* Registration card container */
+  .register-container {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 2rem;
+    width: 500px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Form header and toggle buttons */
+  .form-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-header h2 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+  
+  .toggle-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+  }
+  
+  .toggle-buttons button {
+    background: none;
+    border: 2px solid #2563eb;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #2563eb;
+    transition: background 0.3s, color 0.3s;
+  }
+  
+  .toggle-buttons button.active,
+  .toggle-buttons button:hover {
+    background: #2563eb;
+    color: #ffffff;
+  }
+  
+  /* Registration form styling */
+  .register-form .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .register-form .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .register-form .form-group.full-width {
+    grid-column: span 2;
+  }
+  
+  .register-form label {
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+  
+  .register-form input {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    outline: none;
+    box-sizing: border-box;
+  }
+  
+  .register-form input:focus {
+    box-shadow: 0 0 0 2px #3b82f6;
+  }
+  
+  /* Register button styling */
+  .register-button {
+    width: 100%;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .register-button:hover {
+    background-color: #1d4ed8;
+  }
+  

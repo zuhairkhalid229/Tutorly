@@ -14,3 +14,11 @@ export const getUserDetails = (req, res) => {
     }
   );
 };
+export const getSubjects = (req, res) => {
+  db.query('SELECT * FROM subjects', (err, results) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error fetching subjects', error: err });
+    }
+    res.json(results);
+  });
+};

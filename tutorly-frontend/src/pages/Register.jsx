@@ -1,106 +1,194 @@
-import React, { useState } from 'react';
-import { registerUser } from '../api';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { registerUser, getSubjects } from '../api'; // Import necessary API functions
+import '../styles/Register.css';
 
 const Register = () => {
-  const navigate = useNavigate();
+  const [role, setRole] = useState('student');
   const [formData, setFormData] = useState({
-    name: '',
+    fullName: '',
     email: '',
     password: '',
-    role: 'student',
+    confirmPassword: '',
+    grade: '', // for students
+    qualification: '', // for tutors
+    subjects: [] // for tutors; stored as an array
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [subjectsOptions, setSubjectsOptions] = useState([]);
+  const [message, setMessage] = useState('');
 
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  // When role changes to tutor, fetch available subjects from the API
+  useEffect(() => {
+    if (role === 'tutor') {
+      getSubjects()
+        .then((data) => setSubjectsOptions(data))
+        .catch((err) => console.error('Error fetching subjects:', err));
+    }
+  }, [role]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // For the multi-select subjects field
+  const handleSubjectsChange = (e) => {
+    const options = e.target.options;
+    const selectedSubjects = [];
+    for (let i = 0; i < options.length; i++) {
+      if (options[i].selected) {
+        selectedSubjects.push(options[i].value);
+      }
+    }
+    setFormData((prev) => ({ ...prev, subjects: selectedSubjects }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match!');
+      return;
+    }
+
+    // Prepare the payload for the API
+    const payload = {
+      name: formData.fullName,
+      email: formData.email,
+      password: formData.password,
+      role,
+    };
+    if (role === 'student') {
+      payload.grade = formData.grade;
+    }
+    if (role === 'tutor') {
+      payload.qualification = formData.qualification;
+      payload.subjects = formData.subjects; // expect an array of subject names
+    }
+
     try {
-      const response = await registerUser(formData);
-      setSuccess(response.data.message);
-      setError('');
-      setTimeout(() => navigate('/'), 2000);
-    } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
-      setSuccess('');
+      const response = await registerUser(payload);
+      setMessage(response.message || 'Registration successful');
+    } catch (error) {
+      setMessage(error.message || 'Registration failed');
     }
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gradient-to-r from-blue-400 to-blue-600">
-      <div className="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-        <h1 className="text-3xl font-bold text-center mb-6">Sign Up</h1>
-
-        {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-        {success && <p className="text-green-500 text-center mb-4">{success}</p>}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block mb-1 text-gray-700 font-medium">
-              Full Name
-            </label>
-            <input
-              name="name"
-              type="text"
-              placeholder="Enter your name"
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-gray-700 font-medium">
-              Email
-            </label>
-            <input
-              name="email"
-              type="email"
-              placeholder="Enter your email"
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-gray-700 font-medium">
-              Password
-            </label>
-            <input
-              name="password"
-              type="password"
-              placeholder="Create a password"
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 text-gray-700 font-medium">
-              Role
-            </label>
-            <select
-              name="role"
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    <div className="register-wrapper">
+      <div className="register-container">
+        <div className="form-header">
+          <h2>Register as {role === 'student' ? 'Student' : 'Tutor'}</h2>
+          <div className="toggle-buttons">
+            <button
+              className={role === 'student' ? 'active' : ''}
+              onClick={() => setRole('student')}
             >
-              <option value="student">Student</option>
-              <option value="tutor">Tutor</option>
-              <option value="admin">Admin</option>
-            </select>
+              Student
+            </button>
+            <button
+              className={role === 'tutor' ? 'active' : ''}
+              onClick={() => setRole('tutor')}
+            >
+              Tutor
+            </button>
           </div>
-
-          <button
-            type="submit"
-            className="w-full bg-blue-500 text-white rounded-md py-2 font-semibold hover:bg-blue-600 transition"
-          >
-            Sign Up
-          </button>
+        </div>
+        {message && <p className="message">{message}</p>}
+        <form onSubmit={handleSubmit} className="register-form">
+          <div className="form-grid">
+            <div className="form-group full-width">
+              <label htmlFor="fullName">Full Name</label>
+              <input
+                type="text"
+                id="fullName"
+                name="fullName"
+                placeholder="Enter your full name"
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                placeholder="Enter your email"
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Enter your password"
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                placeholder="Confirm your password"
+                onChange={handleChange}
+                required
+              />
+            </div>
+            {role === 'student' && (
+              <div className="form-group">
+                <label htmlFor="grade">Grade</label>
+                <input
+                  type="text"
+                  id="grade"
+                  name="grade"
+                  placeholder="Enter your grade"
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            )}
+            {role === 'tutor' && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="qualification">Qualification</label>
+                  <input
+                    type="text"
+                    id="qualification"
+                    name="qualification"
+                    placeholder="Enter your qualification"
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="subjects">Subjects</label>
+                  <select
+                    id="subjects"
+                    name="subjects"
+                    multiple
+                    onChange={handleSubjectsChange}
+                    required
+                  >
+                    {subjectsOptions.map((subject) => (
+                      <option key={subject.id} value={subject.name}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+            <div className="form-group full-width">
+              <button type="submit" className="register-button">
+                Register
+              </button>
+            </div>
+          </div>
         </form>
       </div>
     </div>

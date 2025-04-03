@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { loginUser } from '../api';
 import { useNavigate } from 'react-router-dom';
+import '../styles/Login.css';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const Login = () => {
       setError('');
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('role', response.data.role);
-      navigate('/dashboard'); // Single dashboard route
+      navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
       setSuccess('');
@@ -28,83 +29,59 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white">
-      {/* Top Bar */}
-      <div className="flex items-center justify-between px-8 py-4 border-b">
-        <h1 className="text-2xl font-bold text-blue-600">Tutorly</h1>
-        <a href="/register" className="text-blue-600 hover:underline">
-          Create an account
-        </a>
-      </div>
+    <div className="login-wrapper">
+      <div className="login-container">
+        {/* Left Section: Welcome */}
+        <div className="welcome-section">
+          <h2>Welcome</h2>
+          <p>Join Tutorly to explore new opportunities!</p>
+          <a href="/register" className="register-btn">
+            REGISTER
+          </a>
+        </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="w-full max-w-sm px-4">
-          <h2 className="text-xl font-semibold mb-6 text-center">Login</h2>
-
-          {/* Error / Success Messages */}
-          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
-          {success && <p className="text-green-500 text-center mb-4">{success}</p>}
-
-          {/* <button className="flex items-center justify-center w-full py-2 border border-gray-300 rounded hover:bg-gray-100 transition">
-            <img
-              src="/google-icon.svg"
-              alt="Google"
-              className="w-5 h-5 mr-2"
-            />
-            Sign in with Google
-          </button>
-
-          <div className="flex items-center my-6">
-            <div className="flex-1 h-px bg-gray-300"></div>
-            <p className="mx-2 text-gray-500">OR</p>
-            <div className="flex-1 h-px bg-gray-300"></div>
-          </div> */}
-
-          {/* Email / Password Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Email
-              </label>
+        {/* Right Section: Sign In */}
+        <div className="signin-section">
+          <h2>Sign In</h2>
+          {error && <p className="error-message">{error}</p>}
+          {success && <p className="success-message">{success}</p>}
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label htmlFor="email" className="input-label">Email</label>
               <input
+                id="email"
                 name="email"
                 type="email"
                 placeholder="Enter your email"
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="login-input"
               />
             </div>
 
-            <div>
-              <label className="block mb-1 text-gray-700 font-medium">
-                Password
-              </label>
+            <div className="form-group">
+              <label htmlFor="password" className="input-label">Password</label>
               <input
+                id="password"
                 name="password"
                 type="password"
                 placeholder="Enter your password"
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="login-input"
               />
             </div>
 
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white rounded-md py-2 font-semibold hover:bg-blue-700 transition"
-            >
-              Log in with email
+            <div className="forgot-password">
+              <a href="/forgot-password" className="forgot-password-link">
+                I forgot my password
+              </a>
+            </div>
+
+            <button type="submit" className="login-button">
+              LOGIN
             </button>
           </form>
-
-          {/* Forgot Password Link */}
-          <div className="text-center mt-4">
-            <a href="/forgot-password" className="text-blue-600 hover:underline">
-              I forgot my password
-            </a>
-          </div>
         </div>
       </div>
     </div>
