@@ -1,177 +1,82 @@
+# Tutorly
 
-# Tutorly - Online Tutoring Platform
+A tutoring marketplace where every tutor passes an **AI-generated subject test** before they can teach, and students find tutors by **describing what they need in plain words**.
 
-Tutorly is a comprehensive online tutoring platform that connects students with expert tutors across various subjects. The application facilitates booking lessons, managing profiles, conducting sessions, and handling payments.
+**Live demo: _coming soon_** · Sign in with the demo student or demo tutor on the login page. No sign-up needed.
 
-## Features
+![Tutorly home page](docs/screenshots/home.png)
 
-### User Authentication
-- Separate registration flows for students and tutors
-- Email/password authentication
-- Profile management
-- Role-based access (student, tutor, admin)
+## What it does
 
-### Student Features
-- Browse tutors by subject
-- View tutor profiles and reviews
-- Book tutoring sessions
-- Manage upcoming and past bookings
-- Message tutors
-- Add funds to account
-- View payment history
+| For students | For tutors |
+| --- | --- |
+| Describe a need ("integration by parts for my A-levels, under $35") and get the 3 best-fitting tutors, each with a reason | Take an 8-question test written fresh by Gemini for each attempt; score 75% to add the subject |
+| Book from real open slots, converted from the tutor's timezone to yours | Publish weekly hours and a rate; accept or decline requests |
+| Message tutors live, then join a lesson room with a shared whiteboard | Mark lessons completed; ratings update from reviews |
 
-### Tutor Features
-- Create and manage profile
-- Set availability
-- Accept/decline booking requests
-- Message students
-- Complete subject verification tests
-- Track earnings and payment history
+Plus an admin dashboard with live stats, tutor moderation and a contact inbox.
 
-### Admin Features
-- Manage user accounts (activate/deactivate)
-- Approve tutor verification
-- Process payment requests
-- View platform analytics
+## How it's built
 
-### Additional Features
-- Real-time messaging
-- Payment processing
-- Review system for tutors
-- Subject verification tests for tutors
-- Responsive design for all devices
-
-## Technology Stack
-
-### Frontend
-- React with TypeScript
-- React Router for navigation
-- TanStack Query for data fetching
-- Tailwind CSS for styling
-- Shadcn UI component library
-- Lucide React for icons
-
-### Backend
-- Supabase for backend services
-- PostgreSQL database
-- Supabase Auth for authentication
-- Supabase Storage for file storage
-- Row Level Security for data protection
-
-## Database Schema
-
-### Tables
-1. **profiles** - User profile information
-   - id (references auth.users)
-   - full_name
-   - email
-   - role (student, tutor, admin)
-   - profile_image
-   - about
-   - education
-   - subjects
-   - is_verified
-   - phone
-   - rating
-   - hourly_rate
-   - created_at
-   - updated_at
-
-2. **bookings** - Tutoring session bookings
-   - id
-   - student_id
-   - tutor_id
-   - subject
-   - start_time
-   - end_time
-   - status (pending, confirmed, completed, cancelled)
-   - notes
-   - price
-   - created_at
-   - updated_at
-
-3. **payments** - Payment records
-   - id
-   - payer_id
-   - payee_id
-   - amount
-   - payment_method
-   - status (pending, completed, failed, refunded)
-   - booking_id
-   - created_at
-   - processed_at
-
-4. **messages** - User-to-user messages
-   - id
-   - sender_id
-   - receiver_id
-   - content
-   - is_read
-   - created_at
-
-## Project Structure
-
-```
-tutorly/
-├── src/
-│   ├── components/      # Reusable UI components
-│   ├── contexts/        # React contexts
-│   ├── hooks/           # Custom React hooks
-│   ├── lib/             # Utility libraries
-│   ├── pages/           # Page components
-│   │   ├── admin/       # Admin pages
-│   │   ├── student/     # Student pages
-│   │   └── tutor/       # Tutor pages
-│   ├── services/        # API service functions
-│   └── types/           # TypeScript type definitions
-└── public/              # Static assets
+```mermaid
+flowchart LR
+  B[React SPA<br/>Vite + TanStack Query] -- anon key + user JWT --> S[(Supabase<br/>Postgres + RLS)]
+  B -- Realtime: messages, whiteboard, presence --> S
+  B -- /api/* with user JWT --> F[Vercel functions]
+  F -- service role --> S
+  F -- structured JSON --> G[Gemini API]
+  C[Vercel cron, daily] --> F
 ```
 
-## How to Run Locally
+- **Frontend:** React 18, TypeScript, Vite, Tailwind, shadcn/ui, TanStack Query.
+- **Database and auth:** Supabase Postgres, Auth, Storage and Realtime. Business rules live in SQL.
+- **AI:** Gemini 2.5 Flash with JSON-schema output, called only from Vercel serverless functions.
+- **Tests:** Vitest. The migration runs in-process on [PGlite](https://pglite.dev) (real Postgres in WebAssembly), with Supabase's roles stubbed in.
 
-1. Clone the repository
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. Start the development server:
-   ```
-   npm run dev
-   ```
-4. Open your browser and go to http://localhost:5173
+## Engineering decisions worth reading
 
-## Authentication Flow
+**The database is the security boundary.** The browser holds only the public anon key, so every rule is enforced in Postgres:
 
-1. User registers as either a student or tutor
-2. On successful registration, a profile is automatically created
-3. Students are immediately verified, while tutors require verification
-4. Tutors must pass a subject expertise test to be verified
-5. Once verified, tutors can accept booking requests
+- RLS on every table, plus **column-level grants**: users can update their bio but get `permission denied` on `role`, `is_verified`, `subjects` or `rating`.
+- Bookings go through `request_booking()`, which checks the student, the tutor's verified subjects, lead time and a pending-request cap. It computes the price from the tutor's rate rather than trusting the client.
+- A **GiST exclusion constraint** makes overlapping bookings for a tutor impossible, even when two students race for the same slot.
+- Students' profiles are private. You can only see someone you have a booking or a conversation with. Tutors can reply to students but can't cold-message them.
 
-## Booking Flow
+[`tests/db/schema.test.ts`](tests/db/schema.test.ts) checks all of this from the point of view of anonymous visitors, students, tutors and admins (33 tests).
 
-1. Student browses tutors and selects one
-2. Student creates a booking request with subject, date, and time
-3. Tutor receives notification and can accept or decline
-4. Once accepted, the payment is processed
-5. Both parties can view the booking details
-6. After the session, the booking can be marked as completed
+**AI verification that can't be gamed** ([`api/verification`](api/verification)):
 
-## Payment System
+1. Gemini generates 11 questions against a JSON schema.
+2. A **second, blind Gemini pass** answers every question. Any question where it disagrees with the key is dropped, so tutors aren't failed by a wrong answer key.
+3. Options are shuffled server-side (models put the right answer first far too often), and the answer key is stored in a column clients have no grant on.
+4. Grading happens on the server. Only the service role can add a subject to a profile.
 
-1. Students add funds to their account
-2. When a booking is confirmed, funds are transferred to the tutor
-3. Admin approves payment withdrawals
-4. Transaction history is maintained for all users
+**AI matching with a fallback** ([`api/match.ts`](api/match.ts)): the schema restricts `tutor_id` to an enum of real tutor IDs, so the model can't invent tutors. The student's text is fenced and treated as untrusted. If Gemini is down or over quota, keyword matching takes over and search keeps working.
 
-## Future Enhancements
+**Timezones without a library** ([`src/lib/time.ts`](src/lib/time.ts)): tutors publish weekly hours in their own timezone. Slots are generated with `Intl`, are DST-safe, and are tested across the London clock change.
 
-1. Video calling integration for online sessions
-2. Calendar integration
-3. Group tutoring sessions
-4. AI-powered tutor matching
-5. Mobile app versions
+**Keeping a free-tier project alive:** a daily Vercel cron resets the demo data. The same writes stop Supabase from pausing the project for inactivity.
 
-## Contact
+## Run it locally
 
-For questions or support, contact support@tutorly.com
+```bash
+npm install
+cp .env.example .env.local      # add your Supabase and Gemini keys
+npm run dev                     # app + /api routes on http://localhost:8080
+```
+
+Set up the database once: run [`supabase/migrations/20261005000000_init.sql`](supabase/migrations/20261005000000_init.sql) in the Supabase SQL editor, then `npm run seed` to load the demo data.
+
+```bash
+npm test          # database security tests + unit tests
+npm run typecheck
+npm run build
+```
+
+Full deployment steps are in [docs/DEPLOY.md](docs/DEPLOY.md).
+
+## History
+
+Tutorly began in 2025 as a fast prototype. In October 2026 I rebuilt it for production: moved the AI calls server-side (the prototype shipped an API key in the browser), wrote the schema with RLS and tests, replaced simulated features (wallet, classroom, admin stats) with real ones, and redesigned the UI.
+
+Built by [Zuhair Khalid](https://www.linkedin.com/in/zuhairkhalid).

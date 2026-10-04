@@ -1,41 +1,17 @@
+import type { ReactNode } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { Loading } from "@/components/common";
+import { dashboardPath, useAuth } from "@/contexts/AuthContext";
+import type { Role } from "@/types/database";
 
-import { Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  allowedRoles?: string[];
-}
-
-const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+// UX only: this decides which screens to show. The database's RLS policies are
+// what actually stop a student from reading a tutor's data, and vice versa.
+export default function ProtectedRoute({ children, roles }: { children: ReactNode; roles?: Role[] }) {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-tutorly-accent"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    // Redirect to their respective dashboard
-    if (user.role === 'student') {
-      return <Navigate to="/student" replace />;
-    } else if (user.role === 'tutor') {
-      return <Navigate to="/tutor" replace />;
-    } else if (user.role === 'admin') {
-      return <Navigate to="/admin" replace />;
-    }
-    
-    return <Navigate to="/" replace />;
-  }
-
+  if (isLoading) return <Loading className="h-screen" />;
+  if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />;
+  if (roles && !roles.includes(user.role)) return <Navigate to={dashboardPath(user.role)} replace />;
   return <>{children}</>;
-};
-
-export default ProtectedRoute;
+}

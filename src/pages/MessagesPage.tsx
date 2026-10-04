@@ -1,398 +1,192 @@
-
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useLocation } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { format, isToday } from "date-fns";
+import { ArrowLeft, Loader2, MessageSquare, Send } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Send } from "lucide-react";
-import { getConversations, getConversation, sendMessage } from "@/services/message.service";
-import { Heading } from "@/components/ui/heading";
-import { format, formatDistanceToNow } from "date-fns";
-import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
+import { EmptyState, ErrorNotice, Loading, PageHeader, PersonAvatar } from "@/components/common";
+import { useAuth } from "@/contexts/AuthContext";
+import { getConversations, getPerson, getThread, markThreadRead, sendMessage } from "@/services/messages";
+import { errorMessage } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 
-interface User {
-  id: string;
-  name: string;
-  image: string;
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
-  isOnline: boolean;
-}
+const stamp = (iso: string) => (isToday(new Date(iso)) ? format(new Date(iso), "HH:mm") : format(new Date(iso), "d MMM"));
 
-interface Message {
-  id: string;
-  sender_id: string;
-  receiver_id: string;
-  content: string;
-  created_at: string;
-  is_read: boolean;
-}
-
-interface MessagesPageProps {
-  userType?: "student" | "tutor" | "admin";
-}
-
-const MessagesPage = ({ userType = "student" }: MessagesPageProps) => {
+export default function MessagesPage() {
   const { user } = useAuth();
-  const location = useLocation();
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [messageText, setMessageText] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [conversations, setConversations] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSending, setIsSending] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const other = params.get("with");
+  const conversations = useQuery({ queryKey: ["conversations", user?.id], queryFn: getConversations, enabled: !!user });
+
+  if (!user) return null;
+  if (conversations.isLoading) return <Loading />;
+  if (conversations.error) return <ErrorNotice error={conversations.error} onRetry={() => conversations.refetch()} />;
+  const list = conversations.data ?? [];
+
+  return (
+    <>
+      <PageHeader title="Messages" />
+      <div className="surface grid h-[calc(100vh-220px)] min-h-[480px] overflow-hidden md:grid-cols-[300px_1fr]">
+        <aside className={cn("overflow-y-auto border-r", other && "hidden md:block")}>
+          {list.length === 0 && !other ? (
+            <div className="p-6 text-sm text-muted-foreground">
+              No conversations yet.{" "}
+              {user.role === "student" && (
+                <Link to="/tutors" className="font-semibold text-primary">
+                  Find a tutor to message
+                </Link>
+              )}
+            </div>
+          ) : (
+            <ul>
+              {list.map((c) => (
+                <li key={c.other_id}>
+                  <button
+                    onClick={() => setParams({ with: c.other_id })}
+                    className={cn(
+                      "flex w-full items-center gap-3 border-b px-4 py-3 text-left transition hover:bg-muted/60",
+                      other === c.other_id && "bg-secondary/60",
+                    )}
+                  >
+                    <PersonAvatar name={c.full_name} src={c.profile_image} className="h-10 w-10 text-sm" />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={cn("truncate text-sm", c.unread_count ? "font-bold" : "font-medium")}>{c.full_name}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">{stamp(c.last_message_at)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-xs text-muted-foreground">
+                          {c.last_sender_id === user.id && "You: "}
+                          {c.last_message}
+                        </span>
+                        {c.unread_count > 0 && (
+                          <span className="rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">{c.unread_count}</span>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </aside>
+
+        <section className={cn("flex min-h-0 flex-col", !other && "hidden md:flex")}>
+          {other ? (
+            <Thread me={user.id} other={other} onBack={() => setParams({})} />
+          ) : (
+            <div className="m-auto p-6">
+              <EmptyState icon={<MessageSquare className="h-5 w-5" />} title="Pick a conversation" />
+            </div>
+          )}
+        </section>
+      </div>
+    </>
+  );
+}
+
+function Thread({ me, other, onBack }: { me: string; other: string; onBack: () => void }) {
+  const queryClient = useQueryClient();
+  const [text, setText] = useState("");
+  const bottom = useRef<HTMLDivElement>(null);
+  const person = useQuery({ queryKey: ["person", other], queryFn: () => getPerson(other) });
+  const thread = useQuery({ queryKey: ["thread", other], queryFn: () => getThread(me, other) });
+
+  const unread = thread.data?.some((m) => m.receiver_id === me && !m.is_read);
+  useEffect(() => {
+    if (!unread) return;
+    markThreadRead(me, other).then(() => {
+      queryClient.invalidateQueries({ queryKey: ["unread"] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    });
+  }, [unread, me, other, queryClient]);
 
   useEffect(() => {
-    if (user?.id) {
-      loadConversations();
-      
-      // Check if a specific tutor/student was passed via query params
-      const searchParams = new URLSearchParams(location.search);
-      const tutorId = searchParams.get('tutor');
-      const studentId = searchParams.get('student');
-      
-      if (tutorId || studentId) {
-        const otherId = tutorId || studentId;
-        fetchUserAndSelectConversation(otherId!);
-      }
-    }
-  }, [user, location]);
+    bottom.current?.scrollIntoView({ block: "end" });
+  }, [thread.data?.length]);
 
-  const fetchUserAndSelectConversation = async (userId: string) => {
-    try {
-      setIsLoading(true);
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) throw error;
-      
-      // Create a user object from the profile
-      const userObj: User = {
-        id: profile.id,
-        name: profile.full_name || 'Unknown User',
-        image: profile.profile_image || `https://ui-avatars.com/api/?name=${encodeURIComponent(profile.full_name || 'U')}&background=random`,
-        lastMessage: '',
-        lastMessageTime: new Date().toISOString(),
-        unreadCount: 0,
-        isOnline: false
-      };
-      
-      setSelectedUser(userObj);
-      
-      // Load messages for this user
-      const messagesData = await getConversation(user!.id, userId);
-      setMessages(messagesData);
-      
-      // Also refresh the conversations list to include this new conversation if it's not there
-      await loadConversations();
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load user information",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const send = useMutation({
+    mutationFn: (content: string) => sendMessage(me, other, content),
+    onSuccess: () => {
+      setText("");
+      queryClient.invalidateQueries({ queryKey: ["thread", other] });
+      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  });
 
-  const loadConversations = async () => {
-    if (!user?.id) return;
-    
-    setIsLoading(true);
-    try {
-      const data = await getConversations(user.id);
-      setConversations(data);
-    } catch (error) {
-      console.error("Failed to load conversations:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load your conversations. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadMessages = async () => {
-    if (!user?.id || !selectedUser?.id) return;
-    
-    setIsLoading(true);
-    try {
-      const data = await getConversation(user.id, selectedUser.id);
-      setMessages(data);
-      
-      // Update conversation to mark as read
-      setConversations(prevConversations => 
-        prevConversations.map(conv => 
-          conv.id === selectedUser.id ? { ...conv, unreadCount: 0 } : conv
-        )
-      );
-    } catch (error) {
-      console.error("Failed to load messages:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load messages. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (user?.id && selectedUser?.id) {
-      loadMessages();
-    }
-  }, [selectedUser?.id]);
-
-  const handleSendMessage = async () => {
-    if (!messageText.trim() || !selectedUser || !user?.id || isSending) return;
-
-    setIsSending(true);
-    try {
-      const messageData = {
-        sender_id: user.id,
-        receiver_id: selectedUser.id,
-        content: messageText,
-      };
-      
-      const newMessage = await sendMessage(messageData);
-      setMessages(prev => [...prev, newMessage]);
-      setMessageText("");
-      
-      // Update the conversation list
-      setConversations(prevConversations => {
-        const existingConvIndex = prevConversations.findIndex(conv => conv.id === selectedUser.id);
-        
-        if (existingConvIndex !== -1) {
-          // Update existing conversation
-          const updatedConvs = [...prevConversations];
-          updatedConvs[existingConvIndex] = {
-            ...updatedConvs[existingConvIndex],
-            lastMessage: messageText,
-            lastMessageTime: new Date().toISOString()
-          };
-          return updatedConvs;
-        } else {
-          // This is a new conversation, add it to the list
-          return [
-            {
-              id: selectedUser.id,
-              name: selectedUser.name,
-              image: selectedUser.image,
-              lastMessage: messageText,
-              lastMessageTime: new Date().toISOString(),
-              unreadCount: 0,
-              isOnline: false
-            },
-            ...prevConversations
-          ];
-        }
-      });
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  // Format time for display
-  const formatMessageTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return format(date, 'HH:mm');
-  };
-  
-  // Format last message time for conversation list
-  const formatLastMessageTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return formatDistanceToNow(date, { addSuffix: true });
+  const submit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (text.trim()) send.mutate(text);
   };
 
   return (
-    <div className="h-[calc(100vh-220px)] flex flex-col">
-      <Heading 
-        title="Messages" 
-        description="Chat with your students and tutors"
-      />
-      
-      <div className="flex flex-col md:flex-row shadow-sm rounded-lg overflow-hidden flex-grow mt-4">
-        {/* Contacts List */}
-        <div className="w-full md:w-1/3 lg:w-1/4 bg-white border-r">
-          <div className="p-4 border-b">
-            <h2 className="text-xl font-bold">Chats</h2>
-          </div>
-          <div className="overflow-y-auto h-[calc(100%-60px)]">
-            {isLoading && !conversations.length ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-tutorly-accent"></div>
-              </div>
-            ) : conversations.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
-                No conversations yet
-              </div>
-            ) : (
-              conversations.map((u) => (
-                <div
-                  key={u.id}
-                  onClick={() => setSelectedUser(u)}
-                  className={`flex items-center p-4 cursor-pointer ${
-                    selectedUser?.id === u.id
-                      ? "bg-tutorly-light-blue"
-                      : "hover:bg-gray-50"
-                  }`}
-                >
-                  <div className="relative">
-                    <Avatar className="h-10 w-10 mr-3">
-                      <AvatarImage src={u.image} alt={u.name} />
-                      <AvatarFallback>{u.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    {u.isOnline && (
-                      <span className="absolute bottom-0 right-2 h-3 w-3 bg-green-500 rounded-full border-2 border-white"></span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium truncate">{u.name}</h3>
-                    <p className="text-sm text-gray-500 truncate">{u.lastMessage}</p>
-                  </div>
-                  <div className="flex flex-col items-end ml-2">
-                    <span className="text-xs text-gray-500">{formatLastMessageTime(u.lastMessageTime)}</span>
-                    {u.unreadCount > 0 && (
-                      <span className="bg-tutorly-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center mt-1">
-                        {u.unreadCount}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+    <>
+      <header className="flex items-center gap-3 border-b px-4 py-3">
+        <button onClick={onBack} className="rounded-lg p-1.5 hover:bg-muted md:hidden" aria-label="Back to conversations">
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <PersonAvatar name={person.data?.full_name} src={person.data?.profile_image} className="h-9 w-9 text-sm" />
+        <div>
+          <div className="text-sm font-semibold">{person.data?.full_name ?? "…"}</div>
+          {person.data?.role === "tutor" && (
+            <Link to={`/tutors/${other}`} className="text-xs text-primary hover:underline">
+              View profile
+            </Link>
+          )}
         </div>
+      </header>
 
-        {/* Chat Area */}
-        {selectedUser ? (
-          <div className="flex-1 flex flex-col bg-gray-50">
-            {/* Chat Header */}
-            <div className="bg-white p-4 shadow-sm flex items-center">
-              <Avatar className="h-10 w-10 mr-3">
-                <AvatarImage src={selectedUser.image} alt={selectedUser.name} />
-                <AvatarFallback>{selectedUser.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <h3 className="font-medium">{selectedUser.name}</h3>
-                <p className="text-sm text-gray-500">
-                  {selectedUser.isOnline ? "Online" : "Offline"}
+      <div className="flex-1 space-y-2 overflow-y-auto bg-muted/30 px-4 py-4">
+        {thread.isLoading && <Loading />}
+        {thread.data?.length === 0 && (
+          <p className="py-10 text-center text-sm text-muted-foreground">Say hello. Mention what you'd like help with.</p>
+        )}
+        {thread.data?.map((m) => {
+          const mine = m.sender_id === me;
+          return (
+            <div key={m.id} className={cn("flex", mine ? "justify-end" : "justify-start")}>
+              <div
+                className={cn(
+                  "max-w-[78%] rounded-2xl px-3.5 py-2 text-sm shadow-sm",
+                  mine ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-card",
+                )}
+              >
+                <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                <p className={cn("mt-1 text-right text-[11px]", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                  {stamp(m.created_at)}
                 </p>
               </div>
             </div>
-
-            {/* Messages */}
-            <div className="flex-1 p-4 overflow-y-auto">
-              <div className="space-y-4">
-                {isLoading && !messages.length ? (
-                  <div className="flex justify-center items-center h-32">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-tutorly-accent"></div>
-                  </div>
-                ) : messages.length === 0 ? (
-                  <div className="text-center text-gray-500 my-8">
-                    No messages yet. Start a conversation!
-                  </div>
-                ) : (
-                  messages.map((msg) => {
-                    const isUserMessage = msg.sender_id === user?.id;
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex ${isUserMessage ? "justify-end" : "justify-start"}`}
-                      >
-                        <Card className={`max-w-[75%] ${isUserMessage ? "bg-tutorly-accent text-white" : "bg-white"}`}>
-                          <CardContent className="p-3">
-                            <p>{msg.content}</p>
-                            <div className={`text-xs mt-1 ${isUserMessage ? "text-white/70" : "text-gray-500"}`}>
-                              {formatMessageTime(msg.created_at)}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Message Input */}
-            <div className="p-4 bg-white border-t">
-              <div className="flex items-center">
-                <Input
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="Type your message..."
-                  className="flex-1 mr-2"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                />
-                <Button 
-                  onClick={handleSendMessage} 
-                  size="icon"
-                  disabled={isSending || !messageText.trim()}
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
-            <div className="text-center p-8">
-              <div className="rounded-full bg-gray-200 h-16 w-16 flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="h-8 w-8 text-gray-500" />
-              </div>
-              <h3 className="text-xl font-medium mb-2">No conversation selected</h3>
-              <p className="text-gray-500 mb-4">
-                Choose a conversation from the list to start chatting
-              </p>
-            </div>
-          </div>
-        )}
+          );
+        })}
+        <div ref={bottom} />
       </div>
-    </div>
+
+      <form onSubmit={submit} className="flex items-end gap-2 border-t p-3">
+        <label htmlFor="message" className="sr-only">
+          Message
+        </label>
+        <textarea
+          id="message"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              submit();
+            }
+          }}
+          rows={1}
+          maxLength={4000}
+          placeholder="Write a message"
+          className="max-h-32 min-h-[40px] flex-1 resize-none rounded-lg border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+        />
+        <Button type="submit" size="icon" disabled={!text.trim() || send.isPending} aria-label="Send">
+          {send.isPending ? <Loader2 className="animate-spin" /> : <Send />}
+        </Button>
+      </form>
+    </>
   );
-};
-
-const MessageSquare = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-  </svg>
-);
-
-export default MessagesPage;
+}
