@@ -30,7 +30,7 @@ flowchart LR
 
 - **Frontend:** React 18, TypeScript, Vite, Tailwind, shadcn/ui, TanStack Query.
 - **Database and auth:** Supabase Postgres, Auth, Storage and Realtime. Business rules live in SQL.
-- **AI:** Gemini 2.5 Flash with JSON-schema output, called only from Vercel serverless functions.
+- **AI:** Gemini Flash (rolling `gemini-flash-latest` alias, with retries and a Flash-Lite fallback) and JSON-schema output, called only from Vercel serverless functions.
 - **Tests:** Vitest. The migration runs in-process on [PGlite](https://pglite.dev) (real Postgres in WebAssembly), with Supabase's roles stubbed in.
 
 ## Engineering decisions worth reading
