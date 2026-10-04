@@ -2,7 +2,7 @@
 
 A tutoring marketplace where every tutor passes an **AI-generated subject test** before they can teach, and students find tutors by **describing what they need in plain words**.
 
-**Live demo: _coming soon_** · Sign in with the demo student or demo tutor on the login page. No sign-up needed.
+**Live demo: [tutorly-six-teal.vercel.app](https://tutorly-six-teal.vercel.app)** · Sign in with the demo student or demo tutor on the login page. No sign-up needed.
 
 ![Tutorly home page](docs/screenshots/home.png)
 
