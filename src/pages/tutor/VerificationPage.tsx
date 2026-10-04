@@ -63,7 +63,7 @@ export default function VerificationPage() {
     <>
       <PageHeader
         title="AI verification"
-        description={`Pass a ${QUESTIONS_PER_TEST}-question test with ${PASS_MARK}% or more to add a subject to your profile.`}
+        description={`Pass an ${QUESTIONS_PER_TEST}-question test with ${PASS_MARK}% or more to add a subject to your profile.`}
       />
 
       {result && <ResultPanel result={result} onDone={() => setResult(null)} />}
@@ -180,7 +180,7 @@ function TestRunner({
 }: {
   test: StartedTest;
   answers: Record<string, string>;
-  setAnswers: (a: Record<string, string>) => void;
+  setAnswers: React.Dispatch<React.SetStateAction<Record<string, string>>>;
   onSubmit: () => void;
   submitting: boolean;
 }) {
@@ -225,7 +225,7 @@ function TestRunner({
                     key={o.id}
                     role="radio"
                     aria-checked={chosen}
-                    onClick={() => setAnswers({ ...answers, [q.id]: o.id })}
+                    onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: o.id }))}
                     className={cn(
                       "flex w-full items-start gap-3 rounded-lg border px-3 py-3 text-left text-sm transition",
                       chosen ? "border-primary bg-secondary" : "hover:border-primary/40",

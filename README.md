@@ -16,6 +16,14 @@ A tutoring marketplace where every tutor passes an **AI-generated subject test**
 
 Plus an admin dashboard with live stats, tutor moderation and a contact inbox.
 
+| AI matching | AI verification test |
+| --- | --- |
+| ![AI matching](docs/screenshots/ai-match.png) | ![AI test](docs/screenshots/verification-test.png) |
+| **Booking in your timezone** | **Live whiteboard lesson room** |
+| ![Booking](docs/screenshots/booking.png) | ![Lesson room](docs/screenshots/lesson-room.png) |
+| **Results with explanations** | **Tutor dashboard** |
+| ![Test results](docs/screenshots/verification-result.png) | ![Tutor dashboard](docs/screenshots/tutor-dashboard.png) |
+
 ## How it's built
 
 ```mermaid

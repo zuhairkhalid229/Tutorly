@@ -109,7 +109,7 @@ export function BookLessonDialog({ tutor }: { tutor: TutorDetail }) {
           <CalendarClock /> Book a lesson
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Book a lesson with {tutor.full_name}</DialogTitle>
           <DialogDescription>
@@ -122,7 +122,7 @@ export function BookLessonDialog({ tutor }: { tutor: TutorDetail }) {
             Only student accounts can book lessons. Sign in with the demo student, or create a student account.
           </p>
         ) : (
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <div className="space-y-2">
               <Label>Subject</Label>
               <div className="flex flex-wrap gap-2">
@@ -145,7 +145,7 @@ export function BookLessonDialog({ tutor }: { tutor: TutorDetail }) {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="min-w-0 space-y-2">
               <Label>Day and time</Label>
               {busy.isLoading ? (
                 <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">

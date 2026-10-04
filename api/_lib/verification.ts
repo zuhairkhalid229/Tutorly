@@ -60,7 +60,8 @@ Rules for every question:
 - Wrong options must be plausible: use mistakes students really make.
 - Never use "all of the above", "none of the above" or "both A and B".
 - Don't make the correct option the longest one.
-- Keep each question under 60 words. Use plain text; write maths inline like x^2 + 3x.
+- Keep each question under 60 words. Plain text only: no LaTeX, Markdown, underscores or carets.
+  Write formulas with Unicode, e.g. H₂O, CO₂, x² + 3x, √2, π, ≤, →, Δ, °C.
 
 Across the test: cover different sub-topics, mix recall of core ideas, short applied problems,
 and common misconceptions a tutor has to be able to explain.`;

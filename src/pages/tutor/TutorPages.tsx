@@ -50,8 +50,8 @@ export function TutorDashboard() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="New requests" value={g.requests.length} />
         <StatTile label="Upcoming lessons" value={g.upcoming.length} />
-        <StatTile label="Earned on Tutorly" value={money(earned)} hint={`${completed.length} completed lessons`} />
-        <StatTile label="Rating" value={profile.rating ? `${Number(profile.rating).toFixed(1)} ★` : "–"} hint={`${profile.review_count} reviews`} />
+        <StatTile label="Earned on Tutorly" value={money(earned)} hint={`${completed.length} completed lesson${completed.length === 1 ? "" : "s"}`} />
+        <StatTile label="Rating" value={profile.rating ? `${Number(profile.rating).toFixed(1)} ★` : "–"} hint={`${profile.review_count} review${profile.review_count === 1 ? "" : "s"}`} />
       </div>
 
       {profile.subjects.length > 0 && (
